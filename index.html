@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steuer-Rücklage Red Lotus</title>
+<meta name="theme-color" content="#b01f2e">
+<meta name="apple-mobile-web-app-title" content="Steuer-Rücklage">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<style>
+@font-face { font-family: "Bricolage Grotesque"; font-weight: 600; font-display: swap; src: url("fonts/bricolage-grotesque-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Bricolage Grotesque"; font-weight: 700; font-display: swap; src: url("fonts/bricolage-grotesque-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url("fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 500; font-display: swap; src: url("fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url("fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); }
+/* Plan: Werkzeug-Seite. Links die Fakten (BWA, Haushalt, Bescheide), rechts die Antworten. Lotusrot nur für die eine Zahl, die zählt. */
+:root {
+  --paper: #f5f4f2;
+  --surface: #ffffff;
+  --ink: #1e1b1f;
+  --muted: #69636c;
+  --line: #e2dee1;
+  --accent: #b01f2e;
+  --accent-soft: #f7e4e6;
+  --good: #1d7656;
+  --good-soft: #e1f2ea;
+  --warn: #9a5f00;
+  --warn-soft: #fbefd9;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #131114; --surface: #1c191d; --ink: #f0edf0; --muted: #a59ea8; --line: #322d34;
+    --accent: #f0646c; --accent-soft: #3b1c21; --good: #55c79b; --good-soft: #14302a; --warn: #e7a83f; --warn-soft: #362a13;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #131114; --surface: #1c191d; --ink: #f0edf0; --muted: #a59ea8; --line: #322d34;
+  --accent: #f0646c; --accent-soft: #3b1c21; --good: #55c79b; --good-soft: #14302a; --warn: #e7a83f; --warn-soft: #362a13;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--font-body); font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 96px; display: grid; gap: 18px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 26px; line-height: 1.15; }
+h2 { font-size: 17px; }
+a { color: var(--accent); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.brand small { display: block; color: var(--muted); font-size: 13px; margin-bottom: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 14px; border-radius: 999px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.status { font-size: 13px; color: var(--muted); }
+.status.draft { color: var(--warn); }
+
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 14px; border-radius: var(--radius); background: var(--warn-soft); color: var(--ink); font-size: 14px; }
+.banner p { margin: 0; flex: 1 1 320px; }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.tile .k { font-size: 13px; color: var(--muted); }
+.tile .v { font-family: var(--font-display); font-size: 28px; line-height: 1.1; font-weight: 700; }
+.tile .s { font-size: 13px; color: var(--muted); }
+.tile.hero { border-color: var(--accent); background: var(--accent-soft); }
+.tile.hero .v { color: var(--accent); font-size: 34px; }
+.sub { font-size: 14px; color: var(--muted); margin: -4px 0 0; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 410px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.col { display: grid; gap: 12px; }
+
+details.sec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+details.sec > summary { list-style: none; cursor: pointer; padding: 12px 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px; }
+details.sec > summary h2 { white-space: nowrap; }
+details.sec > summary::-webkit-details-marker { display: none; }
+details.sec > summary h2::before { content: "▸"; display: inline-block; width: 1em; color: var(--muted); transition: transform .15s; }
+details.sec[open] > summary h2::before { transform: rotate(90deg); }
+details.sec > summary .hint { font-size: 13px; color: var(--muted); }
+.fields { padding: 0 16px 16px; display: grid; gap: 12px; }
+.f { display: grid; gap: 4px; }
+.f label { font-size: 14px; font-weight: 500; }
+.help { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.in { position: relative; }
+.in input, .in select { width: 100%; padding: 8px 34px 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); text-align: right; }
+.in select { text-align: left; padding-right: 10px; }
+.in .u { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.months .f label { font-size: 12.5px; color: var(--muted); font-weight: 400; }
+.months input { padding-right: 10px; }
+.radios { display: grid; gap: 6px; }
+.radios label { display: flex; gap: 8px; align-items: baseline; font-size: 14px; cursor: pointer; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.total { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
+.card p { margin: 0; }
+.card.alert { border-left: 4px solid var(--warn); background: var(--warn-soft); }
+.card.ok { border-left: 4px solid var(--good); background: var(--good-soft); }
+.card .lead { font-size: 15px; }
+.card .note { font-size: 13px; color: var(--muted); }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td, th { padding: 6px 0; text-align: left; vertical-align: baseline; }
+td.n, th.n { text-align: right; white-space: nowrap; padding-left: 12px; }
+tr.sum td { border-top: 1px solid var(--ink); font-weight: 600; }
+tr.minor td { color: var(--muted); font-size: 13px; }
+tr.key td { font-weight: 600; color: var(--accent); }
+.scroll { overflow-x: auto; }
+
+.timeline { display: grid; gap: 0; }
+.pay { display: grid; grid-template-columns: 64px 1fr auto auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.pay:last-child { border-bottom: 0; }
+.pay .d { color: var(--muted); }
+.pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.paid { color: var(--good); border-color: var(--good); }
+.pill.open { color: var(--warn); border-color: var(--warn); }
+.pill.big { color: var(--accent); border-color: var(--accent); }
+
+.scen th { font-weight: 500; color: var(--muted); font-size: 13px; }
+.scen td.mid, .scen th.mid { font-weight: 600; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.rangeRow { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; font-size: 14px; }
+.warnline { font-size: 13px; color: var(--warn); }
+
+footer { font-size: 12.5px; color: var(--muted); display: grid; gap: 6px; }
+footer ul { margin: 0; padding-left: 18px; }
+
+.sticky { display: none; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sticky { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; justify-content: space-between; gap: 12px; align-items: baseline; padding: 10px 16px; background: var(--ink); color: var(--paper); font-size: 14px; }
+  .sticky b { font-family: var(--font-display); font-size: 19px; }
+}
+@media (max-width: 420px) {
+  .wrap { padding: 14px 16px 96px; }
+  .tile .v { font-size: 23px; }
+  .tile.hero .v { font-size: 27px; }
+  .row2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <small>Red Lotus Asian Food · Einzelunternehmen · Warthausen</small>
+      <h1>Steuer-Rücklage</h1>
+    </div>
+    <div style="display:grid; gap:6px; justify-items:end">
+      <div class="seg" role="group" aria-label="Steuerjahr">
+        <button type="button" id="y2026" aria-pressed="true">2026</button>
+        <button type="button" id="y2027" aria-pressed="false">2027 · Entwurf</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+  </header>
+
+  <div class="banner" id="exBanner" hidden>
+    <p><b>Beispielwerte.</b> Ersetze sie durch deine Zahlen aus der DATEV-BWA, der Lohnabrechnung deiner Frau und den Vorauszahlungsbescheiden. Alles bleibt nur in diesem Browser gespeichert.</p>
+    <button class="btn" type="button" id="clearBtn">Alle Felder leeren</button>
+    <button class="btn" type="button" id="hideBtn">Meine Zahlen sind drin</button>
+  </div>
+
+  <section class="tiles" aria-label="Ergebnis">
+    <div class="tile hero"><span class="k">Noch zurücklegen</span><span class="v" id="tBedarf">–</span><span class="s" id="tBedarfS"></span></div>
+    <div class="tile"><span class="k" id="tRateK">Pro Monat</span><span class="v" id="tRate">–</span><span class="s" id="tRateS"></span></div>
+    <div class="tile"><span class="k" id="tNK">Nachzahlung erwartet</span><span class="v" id="tN">–</span><span class="s" id="tNS"></span></div>
+    <div class="tile"><span class="k">Faustregel</span><span class="v" id="tFaust">–</span><span class="s" id="tFaustS"></span></div>
+  </section>
+  <p class="sub" id="subline"></p>
+
+  <div class="layout">
+    <div class="col" id="inputs">
+      <details class="sec" open>
+        <summary><h2>BWA-Stand</h2><span class="hint">DATEV BWA, kumuliert</span></summary>
+        <div class="fields">
+          <div class="f"><label for="monthX">BWA vorhanden bis</label>
+            <div class="in"><select id="monthX"></select></div></div>
+          <div class="f"><label for="ytdEBT">Ergebnis vor Steuern, kumuliert</label>
+            <div class="in"><input id="ytdEBT" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+            <span class="help">Zeile „Ergebnis vor Steuern“, nicht „Vorläufiges Ergebnis“: Dort sind die Gewerbesteuer-Vorauszahlungen schon abgezogen.</span></div>
+          <div class="f"><label for="ytdUmsatz">Umsatzerlöse netto, kumuliert</label>
+            <div class="in"><input id="ytdUmsatz" inputmode="decimal" autocomplete="off"><span class="u">€</span></div></div>
+          <div class="row2">
+            <div class="f"><label for="ytdZahllast">USt-Zahllast bis dahin</label>
+              <div class="in"><input id="ytdZahllast" inputmode="decimal" autocomplete="off"><span class="u">€</span></div></div>
+            <div class="f"><label for="ustSatz">Ø USt-Satz Umsätze</label>
+              <div class="in"><input id="ustSatz" inputmode="decimal" autocomplete="off"><span class="u">%</span></div></div>
+          </div>
+          <span class="help">Zahllast = Summe deiner Umsatzsteuer-Voranmeldungen im Jahr. Speisen laufen bei dir mit 7 %. Ohne Zahllast fehlt der USt-Anteil in der Faustregel.</span>
+        </div>
+      </details>
+
+      <details class="sec" open>
+        <summary><h2>Vorjahresverlauf</h2><span class="hint" id="vjHint">für die Saison-Hochrechnung</span></summary>
+        <div class="fields">
+          <div class="radios" role="radiogroup" aria-label="Hochrechnung">
+            <label><input type="radio" name="mode" value="trend" id="modeTrend"> Vorjahresverlauf mit deinem Trend (empfohlen)</label>
+            <label><input type="radio" name="mode" value="vorjahr" id="modeVJ"> Restjahr genau wie im Vorjahr</label>
+            <label><input type="radio" name="mode" value="manuell" id="modeMan"> Jahresergebnis selbst eintragen</label>
+          </div>
+          <div class="f" id="manWrap"><label for="manualJahr">Erwartetes Ergebnis vor Steuern, ganzes Jahr</label>
+            <div class="in"><input id="manualJahr" inputmode="decimal" autocomplete="off"><span class="u">€</span></div></div>
+          <span class="help">Ergebnis vor Steuern je Monat aus der BWA-Entwicklungsübersicht des Vorjahres. Wurde die Abschreibung dort erst im Dezember gebucht, trag den Dezember ohne AfA ein.</span>
+          <div class="months" id="months"></div>
+          <div class="total"><span>Vorjahr gesamt</span><span id="vjSum">–</span></div>
+        </div>
+      </details>
+
+      <details class="sec" open>
+        <summary><h2>Korrekturen &amp; Gewerbesteuer</h2></summary>
+        <div class="fields">
+          <div class="f"><label for="afa">AfA, die noch nicht in der BWA steckt (Jahr)</label>
+            <div class="in"><input id="afa" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+            <span class="help">Schau in der BWA in die Zeile „Abschreibungen“. Steht dort bis Monat X schon ungefähr der anteilige Jahresbetrag, trag 0 ein. Steht dort nichts, trag die erwartete Jahres-AfA ein, z. B. für den großen Foodtruck.</span></div>
+          <div class="f"><label for="korr">Sonstige steuerliche Korrekturen (+/−)</label>
+            <div class="in"><input id="korr" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+            <span class="help">Plus z. B. für Privatnutzung des Fahrzeugs oder nicht abziehbare Kosten.</span></div>
+          <div class="f"><label for="hebesatz">Hebesatz Gewerbesteuer</label>
+            <div class="in"><input id="hebesatz" inputmode="decimal" autocomplete="off"><span class="u">%</span></div>
+            <span class="help">Warthausen: 360 % laut Hebesatzsatzung seit 2025. Mit deinem letzten Gewerbesteuerbescheid abgleichen.</span></div>
+        </div>
+      </details>
+
+      <details class="sec" open>
+        <summary><h2>Haushalt</h2><span class="hint">Zusammenveranlagung, Splitting</span></summary>
+        <div class="fields">
+          <div class="row2">
+            <div class="f"><label for="wifeGross">Brutto deiner Frau / Monat</label>
+              <div class="in"><input id="wifeGross" inputmode="decimal" autocomplete="off"><span class="u">€</span></div></div>
+            <div class="f"><label for="wifeTax">Lohnsteuer, Soli, KiSt / Monat</label>
+              <div class="in"><input id="wifeTax" inputmode="decimal" autocomplete="off"><span class="u">€</span></div></div>
+          </div>
+          <div class="f"><label for="wifeMonths">Monate mit Lohn im Jahr</label>
+            <div class="in"><input id="wifeMonths" inputmode="numeric" autocomplete="off"></div>
+            <span class="help">Aus der Lexware-Lohnabrechnung. Ihr Lohn steckt bei dir schon als Kosten in der BWA.</span></div>
+          <div class="f"><label for="sonder">Abziehbare Vorsorge &amp; Sonderausgaben (beide, Jahr)</label>
+            <div class="in"><input id="sonder" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+            <span class="help">Kranken-, Pflege-, Rentenversicherung, Rürup, Spenden. Grob aus dem letzten Steuerbescheid reicht.</span></div>
+          <div class="f"><label for="weitere">Weitere Einkünfte, z. B. Vermietung (Jahr)</label>
+            <div class="in"><input id="weitere" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+            <span class="help">Der Überschuss, nicht die Miete: Miete minus Kosten, Zinsen und AfA. Kapitalerträge mit Abgeltungsteuer gehören nicht hierher.</span></div>
+          <div class="row2">
+            <div class="f"><label for="kirche">Kirchensteuer (8 %)</label>
+              <div class="in"><select id="kirche"><option value="keine">keine</option><option value="ich">nur ich</option><option value="beide">wir beide</option></select></div></div>
+            <div class="f"><label for="kinder">Kinder mit Kindergeld</label>
+              <div class="in"><input id="kinder" inputmode="numeric" autocomplete="off"></div></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="sec" open>
+        <summary><h2>Vorauszahlungen &amp; Steuerkonto</h2></summary>
+        <div class="fields">
+          <div class="row2">
+            <div class="f"><label for="vzESt">ESt-Vorauszahlung / Quartal</label>
+              <div class="in"><input id="vzESt" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+              <span class="help">Inkl. Soli und KiSt, Bescheid vom Finanzamt.</span></div>
+            <div class="f"><label for="vzGewSt">GewSt-Vorauszahlung / Quartal</label>
+              <div class="in"><input id="vzGewSt" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+              <span class="help">Bescheid der Gemeinde.</span></div>
+          </div>
+          <div class="f"><label for="konto">Schon zurückgelegt für ESt und GewSt</label>
+            <div class="in"><input id="konto" inputmode="decimal" autocomplete="off"><span class="u">€</span></div>
+            <span class="help">Stand Steuerkonto, ohne die Umsatzsteuer für die nächste Voranmeldung.</span></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="col" id="results">
+      <div class="card" id="dsCard"></div>
+
+      <div class="card">
+        <h2 id="payTitle">Zahlungen</h2>
+        <div class="timeline" id="timeline"></div>
+      </div>
+
+      <div class="card">
+        <h2>So setzt sich die Steuer zusammen</h2>
+        <div class="scroll"><table id="breakdown"></table></div>
+        <p class="note" id="gewstNote"></p>
+      </div>
+
+      <div class="card">
+        <h2>Szenarien fürs Restjahr</h2>
+        <div class="rangeRow"><label for="scen">Restjahr schlechter / besser um</label><b id="scenVal"></b></div>
+        <input type="range" id="scen" min="0" max="50" step="5">
+        <div class="scroll"><table class="scen" id="scenTable"></table></div>
+        <p class="note" id="scenNote"></p>
+      </div>
+
+      <div class="card">
+        <h2>Investitionsabzugsbetrag durchspielen</h2>
+        <div class="f"><label for="invest">Geplante Anschaffung in den nächsten 3 Jahren (netto)</label>
+          <div class="in"><input id="invest" inputmode="decimal" autocomplete="off"><span class="u">€</span></div></div>
+        <div class="rangeRow"><label for="iabPct">Davon als IAB abziehen</label><b id="iabPctVal"></b></div>
+        <input type="range" id="iabPct" min="0" max="50" step="5">
+        <div id="iabOut"></div>
+        <p class="note">Der IAB verschiebt Steuer, er schenkt sie nicht: Bei der Anschaffung wird er wieder hinzugerechnet, dafür sinkt die Abschreibungsbasis, und es sind bis zu 40 % Sonder-AfA möglich. Wird nicht innerhalb von drei Jahren investiert, fällt er rückwirkend weg, mit Zinsen. Wegen der geplanten GmbH 2027 vorher mit der Steuerberaterin klären, in welchem Betrieb die Anschaffung genutzt wird.</p>
+      </div>
+
+      <div class="card">
+        <h2>Deine Daten</h2>
+        <p class="note">Deine Eingaben bleiben nur auf diesem Gerät, in dieser App. Nichts davon geht ins Internet. Sichere sie ab und zu als Datei, z. B. bevor du Browserdaten löschst oder den Rechner wechselst.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:8px">
+          <button class="btn" type="button" id="exportBtn">Eingaben sichern</button>
+          <label class="btn" for="importFile">Sicherung laden</label>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </div>
+        <p class="note" id="dataMsg" aria-live="polite"></p>
+      </div>
+
+      <footer class="card">
+        <h2>Was der Rechner annimmt</h2>
+        <p>Schätzung ohne Gewähr, ersetzt nicht deine Steuerberaterin. Nicht berücksichtigt: gewerbesteuerliche Hinzurechnungen, Verlustvorträge, außergewöhnliche Belastungen, Kirchensteuer-Kappung, Thesaurierung nach § 34a. Die Faustregel nutzt deine Gewinnmarge bis zum BWA-Monat und den Durchschnittssteuersatz ohne IAB.</p>
+        <ul>
+          <li><a href="https://www.gesetze-im-internet.de/estg/__32a.html">§ 32a EStG, Tarif 2026</a></li>
+          <li><a href="https://dserver.bundestag.de/btd/21/082/2108235.pdf">Regierungsentwurf Einkommensteuerreformgesetz 2027, BT-Drs. 21/8235</a></li>
+          <li><a href="https://www.warthausen.de/Aktuelles/Oeffentliche-Bekanntmachungen">Hebesatzsatzung Warthausen (Gewerbesteuer 360 %)</a></li>
+        </ul>
+      </footer>
+    </div>
+  </div>
+</div>
+<div class="sticky" aria-hidden="true"><span>Noch zurücklegen</span><span><b id="stBedarf">–</b> <span id="stRate"></span></span></div>
+
+<script>
+/* ===== Rechenkern (reine Funktionen, ohne DOM) ===== */
+const TAX_YEARS = {
+  2026: {
+    status: 'law',
+    statusText: 'Tarif 2026 nach § 32a EStG (geltendes Recht)',
+    gfb: 12348, anpb: 1230, kfb: 9756, kg: 259, soliFrei: 20350,
+    tarif(x) {
+      x = Math.floor(x);
+      if (x <= 12348) return 0;
+      if (x <= 17799) { const y = (x - 12348) / 1e4; return Math.floor((914.51 * y + 1400) * y); }
+      if (x <= 69878) { const z = (x - 17799) / 1e4; return Math.floor((173.10 * z + 2397) * z + 1034.87); }
+      if (x <= 277825) return Math.floor(0.42 * x - 11135.63);
+      return Math.floor(0.45 * x - 19470.38);
+    }
+  },
+  2027: {
+    status: 'draft',
+    statusText: 'Tarif 2027 laut Regierungsentwurf Einkommensteuerreformgesetz 2027 (noch nicht beschlossen, Stand Nov. 2026)',
+    gfb: 12564, anpb: 1430, kfb: 10056, kg: 267, soliFrei: 20350,
+    tarif(x) {
+      x = Math.floor(x);
+      if (x <= 12564) return 0;
+      if (x <= 17799) { const y = (x - 12564) / 1e4; return Math.floor((952.24 * y + 1400) * y); }
+      if (x <= 70600) { const z = (x - 17799) / 1e4; return Math.floor((170.74 * z + 2397) * z + 993.86); }
+      if (x <= 249999) return Math.floor(0.42 * x - 11241.73);
+      if (x <= 279999) return Math.floor(0.45 * x - 18741.70);
+      return Math.floor(0.47 * x - 24341.68);
+    }
+  }
+};
+
+const K = {
+  gewstFreibetrag: 24500,
+  messzahl: 0.035,
+  anrechnungFaktor: 4.0,
+  iabGrenze: 200000,
+  iabMax: 200000,
+  kistSatz: 0.08,          // Baden-Württemberg
+  soliSatz: 0.055,
+  soliMilderung: 0.119,
+  estDue: [[2, 10], [5, 10], [8, 10], [11, 10]],   // 10.3., 10.6., 10.9., 10.12. (Monat 0-basiert)
+  gewstDue: [[1, 15], [4, 15], [7, 15], [10, 15]]  // 15.2., 15.5., 15.8., 15.11.
+};
+
+function splitting(year, zvE) {
+  return 2 * TAX_YEARS[year].tarif(Math.floor(Math.max(0, zvE) / 2));
+}
+
+function soli(year, base) {
+  const frei = TAX_YEARS[year].soliFrei * 2;
+  if (base <= frei) return 0;
+  return Math.floor(Math.min(K.soliSatz * base, K.soliMilderung * (base - frei)) * 100) / 100;
+}
+
+/* Hochrechnung des Jahresergebnisses aus BWA-Stand + Vorjahresverlauf */
+function projectProfit(s, factor = 1) {
+  const X = s.monthX;
+  const ytd = X > 0 ? s.ytdEBT : 0;
+  const vj = s.vjMonthly.map(v => v || 0);
+  const vjTotal = vj.reduce((a, b) => a + b, 0);
+  const vjCumX = vj.slice(0, X).reduce((a, b) => a + b, 0);
+  const hasVJ = vj.some(v => v !== 0);
+  const warnings = [];
+  let rest, method, trend = null;
+
+  if (s.mode === 'manuell' && s.manualJahr) {
+    rest = s.manualJahr - ytd;
+    method = 'manuell';
+  } else if (X >= 12) {
+    rest = 0; method = 'ganzes Jahr';
+  } else if (!hasVJ) {
+    if (X > 0) { rest = ytd / X * (12 - X); method = 'linear'; warnings.push('Ohne Vorjahreswerte rechne ich linear hoch. Trag die Monate aus der Vorjahres-BWA ein, dann wird es saisongenau.'); }
+    else { rest = 0; method = 'keine Daten'; }
+  } else {
+    const restVJ = vjTotal - vjCumX;
+    if (s.mode === 'trend' && X > 0 && vjCumX > 0 && ytd > 0) {
+      trend = ytd / vjCumX;
+      rest = restVJ * trend;
+      method = 'Vorjahresverlauf mit Trend';
+      if (trend < 0.5 || trend > 2) warnings.push('Dein Trend zum Vorjahr ist ungewöhnlich (' + Math.round(trend * 100) + ' %). Prüf die Vorjahreswerte oder stell auf „Restjahr wie Vorjahr“ um.');
+    } else {
+      rest = restVJ;
+      method = 'Restjahr wie Vorjahr';
+      if (s.mode === 'trend' && X > 0 && !(vjCumX > 0 && ytd > 0)) warnings.push('Trend nicht berechenbar (Vorjahr oder laufendes Jahr bis hierhin ≤ 0). Ich setze das Restjahr wie im Vorjahr an.');
+    }
+  }
+  return { ytd, rest, restScenario: rest * factor, J: ytd + rest * factor, method, trend, vjTotal, vjCumX, warnings };
+}
+
+/* Steuern für einen gegebenen steuerlichen Gewinn (nach IAB) */
+function taxesFor(year, G, s) {
+  const Y = TAX_YEARS[year];
+  const wifeBrutto = (s.wifeGross || 0) * (s.wifeMonths || 0);
+  const wifeEink = Math.max(0, wifeBrutto - (wifeBrutto > 0 ? Y.anpb : 0));
+  const weitere = s.weitere || 0;              // z. B. Vermietung (Ehemann)
+  const S = G + wifeEink + weitere;
+  const posGew = Math.max(0, G), posSum = Math.max(0, G) + wifeEink + Math.max(0, weitere);
+  const zvEohne = Math.max(0, S - (s.sonder || 0));
+  const n = Math.max(0, Math.floor(s.kinder || 0));
+  const zvEmit = Math.max(0, zvEohne - n * Y.kfb);
+  const estOhne = splitting(year, zvEohne);
+  const estMit = splitting(year, zvEmit);
+  const kgJahr = n * Y.kg * 12;
+  const kfbGuenstiger = n > 0 && (estOhne - estMit) > kgJahr;
+  const tarifESt = kfbGuenstiger ? estMit : estOhne;
+
+  // Gewerbesteuer
+  const ertrag = Math.floor(Math.max(0, G) / 100) * 100;
+  const messbetrag = Math.max(0, ertrag - K.gewstFreibetrag) * K.messzahl;
+  const gewst = Math.round(messbetrag * (s.hebesatz || 0)) / 100;
+
+  // § 35 EStG
+  const hoechst = posSum > 0 ? tarifESt * posGew / posSum : 0;
+  const erm35 = Math.min(K.anrechnungFaktor * messbetrag, gewst, hoechst);
+  const est = Math.max(0, tarifESt - erm35) + (kfbGuenstiger ? kgJahr : 0);
+
+  // Zuschlagsteuern: Basis immer mit Kinderfreibeträgen; § 35 mindert Soli, nicht KiSt
+  const soliBase = Math.max(0, estMit - Math.min(erm35, estMit));
+  const soliZ = soli(year, soliBase);
+  // Kirchensteuer: beide Mitglied = volle ESt; nur du = Anteil nach Grundtabelle auf die Einkünfte jedes Ehegatten
+  const km = s.kirche === true ? 'beide' : (s.kirche || 'keine');
+  let kistAnteil = 0;
+  if (km === 'beide') kistAnteil = 1;
+  else if (km === 'ich') {
+    const tDu = Y.tarif(Math.max(0, G + weitere)), tFrau = Y.tarif(wifeEink);
+    kistAnteil = (tDu + tFrau) > 0 ? tDu / (tDu + tFrau) : 1;
+  }
+  const kist = Math.round(estMit * kistAnteil * K.kistSatz * 100) / 100;
+
+  const withheld = (s.wifeTax || 0) * (s.wifeMonths || 0);
+  const estBlock = est + soliZ + kist;          // ESt + Soli + KiSt (Haushalt)
+  const offen = estBlock - withheld + gewst;    // was aus dem Betrieb kommen muss
+  return { G, wifeBrutto, wifeEink, weitere, kistAnteil, S, zvE: kfbGuenstiger ? zvEmit : zvEohne, tarifESt, kfbGuenstiger, kgJahr,
+    ertrag, messbetrag, gewst, erm35, est, soli: soliZ, kist, withheld, estBlock, offen,
+    gewstNetto: gewst - erm35 };
+}
+
+function paidQuarters(year, due, today) {
+  if (year < today.getFullYear()) return 4;
+  if (year > today.getFullYear()) return 0;
+  return due.filter(([m, d]) => new Date(year, m, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())).length;
+}
+
+function monthsLeft(year, today) {
+  if (year < today.getFullYear()) return 1;
+  if (year > today.getFullYear()) return 12;
+  return 12 - today.getMonth();
+}
+
+function scenarioResult(year, s, factor, today, withIAB = true) {
+  const p = projectProfit(s, factor);
+  const Gvor = p.J - (s.afa || 0) + (s.korr || 0);
+  const iabWanted = Math.min((s.invest || 0) * (s.iabPct || 0) / 100, K.iabMax);
+  const iabAllowed = Gvor <= K.iabGrenze;
+  const iab = withIAB && iabAllowed ? iabWanted : 0;
+  const G = Gvor - iab;
+  const t = taxesFor(year, G, s);
+
+  const vzE = (s.vzESt || 0) * 4, vzG = (s.vzGewSt || 0) * 4;
+  const nE = t.estBlock - t.withheld - vzE;
+  const nG = t.gewst - vzG;
+  const N = nE + nG;
+  const paidE = paidQuarters(year, K.estDue, today), paidG = paidQuarters(year, K.gewstDue, today);
+  const restVZ = (4 - paidE) * (s.vzESt || 0) + (4 - paidG) * (s.vzGewSt || 0);
+  const bedarf = restVZ + Math.max(0, N) - (s.konto || 0);
+  const ml = monthsLeft(year, today);
+  return { p, Gvor, iabWanted, iabAllowed, iab, G, t, vzE, vzG, nE, nG, N, paidE, paidG, restVZ, bedarf,
+    rate: Math.max(0, bedarf) / ml, monthsLeft: ml };
+}
+
+function computeAll(year, s, today) {
+  const f = (s.scen || 0) / 100;
+  const main = scenarioResult(year, s, 1, today, true);
+  const noIab = scenarioResult(year, s, 1, today, false);
+  const scen = [1 - f, 1, 1 + f].map(x => scenarioResult(year, s, x, today, true));
+
+  // Grenzbelastung: was kosten 1.000 € mehr Gewinn?
+  const t1 = taxesFor(year, main.G + 1000, s);
+  const grenz = t1.offen - main.t.offen;
+
+  // Faustregel Cent pro Brutto-Euro Umsatz
+  let faust = null;
+  if (s.monthX > 0 && s.ytdUmsatz > 0) {
+    const brutto = s.ytdUmsatz * (1 + (s.ustSatz || 0) / 100);
+    const share = s.monthX / 12;
+    const ytdGewinn = s.ytdEBT - ((s.afa || 0) - (s.korr || 0)) * share;
+    const e = main.Gvor > 0 ? Math.max(0, noIab.t.offen) / main.Gvor : 0;
+    const ertragCent = Math.max(0, e * ytdGewinn / brutto * 100);
+    const ustCent = s.ytdZahllast > 0 ? s.ytdZahllast / brutto * 100 : null;
+    faust = { ertragCent, ustCent, total: ertragCent + (ustCent || 0), brutto, e };
+  }
+
+  // Doppelschlag
+  const ds = main.N > 0 ? { nach: main.N, quartal: main.N / 4, worst: main.N * 2 } : null;
+
+  return { main, noIab, scen, grenz, faust, ds, iabSaving: noIab.t.offen - main.t.offen };
+}
+
+if (typeof module !== 'undefined') module.exports = { TAX_YEARS, K, splitting, soli, projectProfit, taxesFor, scenarioResult, computeAll, paidQuarters, monthsLeft };
+
+
+/* ===== Oberfläche ===== */
+const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+const MONTHS_LONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+const KEY = 'redlotus-steuerruecklage-v1';
+const TODAY = new Date();
+const NUM_FIELDS = ['ytdEBT', 'ytdUmsatz', 'ytdZahllast', 'ustSatz', 'manualJahr', 'afa', 'korr', 'hebesatz', 'wifeGross', 'wifeTax', 'wifeMonths', 'sonder', 'weitere', 'kinder', 'vzESt', 'vzGewSt', 'konto', 'invest'];
+
+const EXAMPLE = {
+  monthX: 10, ytdEBT: 62000, ytdUmsatz: 238000, ytdZahllast: 9800, ustSatz: 7,
+  vjMonthly: [-2500, -1800, 1500, 5200, 8800, 10500, 12400, 11800, 9200, 4800, 1500, 3000],
+  mode: 'trend', manualJahr: 0, afa: 0, korr: 0, hebesatz: 360,
+  wifeGross: 1800, wifeTax: 45, wifeMonths: 12, sonder: 14000, weitere: 0, kirche: 'keine', kinder: 0,
+  vzESt: 1200, vzGewSt: 800, konto: 3000, invest: 40000, iabPct: 0, scen: 20
+};
+function blank(prev) {
+  return { monthX: 0, ytdEBT: 0, ytdUmsatz: 0, ytdZahllast: 0, ustSatz: 7, vjMonthly: Array(12).fill(0), mode: 'trend', manualJahr: 0,
+    afa: 0, korr: 0, hebesatz: prev ? prev.hebesatz : 360, wifeGross: prev ? prev.wifeGross : 0, wifeTax: prev ? prev.wifeTax : 0,
+    wifeMonths: prev ? prev.wifeMonths : 12, sonder: prev ? prev.sonder : 0, weitere: prev ? (prev.weitere || 0) : 0, kirche: prev ? prev.kirche : 'keine', kinder: prev ? prev.kinder : 0,
+    vzESt: prev ? prev.vzESt : 0, vzGewSt: prev ? prev.vzGewSt : 0, konto: 0, invest: prev ? prev.invest : 0, iabPct: 0, scen: 20 };
+}
+
+let store = { year: TODAY.getFullYear() >= 2027 ? 2027 : 2026, example: true, years: { 2026: structuredClone(EXAMPLE) } };
+try { const raw = localStorage.getItem(KEY); if (raw) store = JSON.parse(raw); } catch (e) { /* ohne Speicher weiter */ }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* ignorieren */ } }
+function S() {
+  if (!store.years[store.year]) {
+    const other = store.years[store.year === 2026 ? 2027 : 2026];
+    store.years[store.year] = blank(other);
+  }
+  return store.years[store.year];
+}
+
+const $ = id => document.getElementById(id);
+const eur = (n, sign) => {
+  if (n === null || n === undefined || !isFinite(n)) return '–';
+  const r = Math.round(n);
+  const s = Math.abs(r).toLocaleString('de-DE') + ' €';
+  if (r < 0) return '−' + s;
+  return (sign && r > 0 ? '+' : '') + s;
+};
+const numFmt = n => (n === 0 || n === null || n === undefined) ? '' : (Math.round(n * 100) / 100).toLocaleString('de-DE');
+function parseDE(str) {
+  if (str === null || str === undefined) return 0;
+  let t = String(str).replace(/[€%\s]/g, '').replace(/−/g, '-');
+  if (!t) return 0;
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  const n = parseFloat(t);
+  return isFinite(n) ? n : 0;
+}
+
+/* Felder aufbauen */
+const sel = $('monthX');
+sel.innerHTML = '<option value="0">noch keine BWA</option>' + MONTHS_LONG.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+$('months').innerHTML = MONTHS.map((m, i) => `<div class="f"><label for="vj${i}">${m}</label><div class="in"><input id="vj${i}" inputmode="decimal" autocomplete="off"></div></div>`).join('');
+
+function fill() {
+  const s = S();
+  sel.value = String(s.monthX);
+  NUM_FIELDS.forEach(k => { $(k).value = numFmt(s[k]); });
+  s.vjMonthly.forEach((v, i) => { $('vj' + i).value = numFmt(v); });
+  $('kirche').value = s.kirche === true ? 'beide' : (s.kirche || 'keine');
+  $('modeTrend').checked = s.mode === 'trend'; $('modeVJ').checked = s.mode === 'vorjahr'; $('modeMan').checked = s.mode === 'manuell';
+  $('scen').value = s.scen; $('iabPct').value = s.iabPct;
+  $('y2026').setAttribute('aria-pressed', store.year === 2026); $('y2027').setAttribute('aria-pressed', store.year === 2027);
+  $('exBanner').hidden = !store.example;
+}
+
+function bind() {
+  NUM_FIELDS.forEach(k => {
+    const el = $(k);
+    el.addEventListener('input', () => { S()[k] = parseDE(el.value); save(); render(); });
+    el.addEventListener('blur', () => { el.value = numFmt(S()[k]); });
+  });
+  for (let i = 0; i < 12; i++) {
+    const el = $('vj' + i);
+    el.addEventListener('input', () => { S().vjMonthly[i] = parseDE(el.value); save(); render(); });
+    el.addEventListener('blur', () => { el.value = numFmt(S().vjMonthly[i]); });
+  }
+  sel.addEventListener('change', () => { S().monthX = +sel.value; save(); render(); });
+  $('kirche').addEventListener('change', e => { S().kirche = e.target.value; save(); render(); });
+  document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', e => { S().mode = e.target.value; save(); render(); }));
+  $('scen').addEventListener('input', e => { S().scen = +e.target.value; save(); render(); });
+  $('iabPct').addEventListener('input', e => { S().iabPct = +e.target.value; save(); render(); });
+  $('y2026').addEventListener('click', () => { store.year = 2026; save(); fill(); render(); });
+  $('y2027').addEventListener('click', () => { store.year = 2027; save(); fill(); render(); });
+  $('clearBtn').addEventListener('click', () => { store.years = {}; store.example = false; S(); save(); fill(); render(); });
+  $('hideBtn').addEventListener('click', () => { store.example = false; save(); fill(); });
+}
+
+function row(label, val, cls = '', sign = false) {
+  return `<tr class="${cls}"><td>${label}</td><td class="n">${typeof val === 'string' ? val : eur(val, sign)}</td></tr>`;
+}
+
+function render() {
+  const year = store.year, s = S(), Y = TAX_YEARS[year];
+  const R = computeAll(year, s, TODAY);
+  const m = R.main, t = m.t;
+
+  $('status').textContent = Y.statusText;
+  $('status').className = 'status' + (Y.status === 'draft' ? ' draft' : '');
+  $('manWrap').hidden = s.mode !== 'manuell';
+  $('vjHint').textContent = (year - 1) + ', für die Saison-Hochrechnung';
+  $('vjSum').textContent = eur(m.p.vjTotal);
+
+  // Kacheln
+  const bed = m.bedarf;
+  $('tBedarf').textContent = bed > 0 ? eur(bed) : '0 €';
+  $('tBedarfS').textContent = bed > 0 ? `Vorauszahlungen ${eur(m.restVZ)} + Nachzahlung ${eur(Math.max(0, m.N))} − Konto ${eur(s.konto || 0)}` : 'Steuerkonto deckt alles, was bis zum Bescheid fällig wird';
+  const toMonth = year === TODAY.getFullYear() ? `bis Dezember (${m.monthsLeft} ${m.monthsLeft === 1 ? 'Monat' : 'Monate'})` : (year > TODAY.getFullYear() ? 'über das ganze Jahr ' + year : 'sofort');
+  $('tRateK').textContent = 'Pro Monat';
+  $('tRate').textContent = eur(m.rate);
+  $('tRateS').textContent = toMonth;
+  $('tNK').textContent = m.N >= 0 ? 'Nachzahlung erwartet' : 'Erstattung erwartet';
+  $('tN').textContent = eur(Math.abs(m.N));
+  $('tNS').textContent = `Steuer ${year} ${eur(t.offen)} gegen Vorauszahlungen ${eur(m.vzE + m.vzG)}`;
+  if (R.faust) {
+    $('tFaust').textContent = (Math.round(R.faust.total * 10) / 10).toLocaleString('de-DE') + ' ct';
+    $('tFaustS').textContent = 'pro Euro Brutto-Umsatz aufs Steuerkonto' + (R.faust.ustCent !== null
+      ? ` (${R.faust.ustCent.toLocaleString('de-DE', { maximumFractionDigits: 1 })} USt + ${R.faust.ertragCent.toLocaleString('de-DE', { maximumFractionDigits: 1 })} ESt/GewSt)`
+      : '. USt-Zahllast fehlt noch');
+  } else { $('tFaust').textContent = '–'; $('tFaustS').textContent = 'braucht BWA-Umsatz bis Monat X'; }
+  $('stBedarf').textContent = bed > 0 ? eur(bed) : '0 €';
+  $('stRate').textContent = '· ' + eur(m.rate) + '/Monat';
+
+  const trendTxt = m.p.trend ? `, Trend ${m.p.trend >= 1 ? '+' : '−'}${Math.abs(Math.round((m.p.trend - 1) * 100))} % zum Vorjahr` : '';
+  $('subline').innerHTML = `Hochgerechnetes Ergebnis ${year}: <b>${eur(m.p.J)}</b> (${m.p.method}${trendTxt}). Jede 1.000 € mehr Gewinn kosten dich rund <b>${eur(R.grenz)}</b> Steuern.`
+    + (m.p.warnings.length ? `<br><span class="warnline">${m.p.warnings.join(' ')}</span>` : '');
+
+  // Doppelschlag
+  const ds = $('dsCard');
+  if (R.ds) {
+    ds.className = 'card alert';
+    ds.innerHTML = `<h2>Achtung Doppelschlag: bis zu ${eur(R.ds.worst)} auf einmal möglich</h2>
+      <p class="lead">Deine Vorauszahlungen liegen für ${year} voraussichtlich um <b>${eur(R.ds.nach)}</b> zu niedrig. Diese Nachzahlung kommt mit dem Steuerbescheid. Gleichzeitig hebt das Finanzamt die Vorauszahlungen an, um etwa <b>${eur(R.ds.quartal)}</b> pro Quartal. Kommt der Bescheid erst im laufenden Folgejahr, wird die Erhöhung für die schon vergangenen Quartale auf einmal nachgefordert.</p>
+      <p><b>Nächster Schritt:</b> Bitte deine Steuerberaterin, jetzt eine Anpassung der Vorauszahlungen zu beantragen. Dann verteilt sich die Last auf die Quartale, statt auf einen Schlag zu kommen.</p>`;
+  } else {
+    ds.className = 'card ok';
+    ds.innerHTML = `<h2>Deine Vorauszahlungen reichen voraussichtlich</h2><p class="lead">Erwartete Erstattung für ${year}: <b>${eur(-m.N)}</b>. Zurücklegen musst du nur noch die restlichen Vorauszahlungen.</p>`;
+  }
+
+  // Zahlungen
+  $('payTitle').textContent = `Zahlungen ${year}`;
+  const pays = [];
+  K.estDue.forEach(([mo, d], i) => pays.push({ date: new Date(year, mo, d), what: 'Einkommensteuer (Finanzamt)', amt: s.vzESt || 0, paid: i < m.paidE }));
+  K.gewstDue.forEach(([mo, d], i) => pays.push({ date: new Date(year, mo, d), what: 'Gewerbesteuer (Gemeinde)', amt: s.vzGewSt || 0, paid: i < m.paidG }));
+  pays.sort((a, b) => a.date - b.date);
+  const dd = d => d.getDate() + '.' + (d.getMonth() + 1) + '.';
+  $('timeline').innerHTML = pays.map(p => `<div class="pay"><span class="d">${dd(p.date)}</span><span>${p.what}</span><span>${eur(p.amt)}</span><span class="pill ${p.paid ? 'paid' : 'open'}">${p.paid ? 'bezahlt' : 'offen'}</span></div>`).join('')
+    + `<div class="pay"><span class="d">später</span><span>${m.N >= 0 ? 'Nachzahlung' : 'Erstattung'} mit dem Steuerbescheid ${year}</span><span>${eur(Math.abs(m.N))}</span><span class="pill ${m.N > 0 ? 'big' : 'paid'}">${m.N > 0 ? 'zurücklegen' : 'kommt zurück'}</span></div>`;
+
+  // Aufschlüsselung
+  let h = '';
+  h += row(`Ergebnis vor Steuern ${year}, hochgerechnet`, m.p.J);
+  if (s.afa) h += row('− AfA, noch nicht in der BWA', -s.afa, 'minor');
+  if (s.korr) h += row('± sonstige Korrekturen', s.korr, 'minor', true);
+  if (m.iab) h += row('− Investitionsabzugsbetrag', -m.iab, 'minor');
+  h += row('= Einkünfte aus Gewerbebetrieb', t.G, 'sum');
+  if (t.wifeBrutto) h += row(`+ Lohn deiner Frau (${eur(t.wifeBrutto)} − Pauschbetrag ${eur(Y.anpb)})`, t.wifeEink, 'minor');
+  if (t.weitere) h += row('+ weitere Einkünfte (z. B. Vermietung)', t.weitere, 'minor', true);
+  if (s.sonder) h += row('− Vorsorge und Sonderausgaben', -s.sonder, 'minor');
+  if (t.kfbGuenstiger) h += row(`− Kinderfreibeträge (${s.kinder} × ${eur(Y.kfb)})`, -s.kinder * Y.kfb, 'minor');
+  h += row('= zu versteuerndes Einkommen (Splitting)', t.zvE, 'sum');
+  h += row('Tarifliche Einkommensteuer', t.tarifESt);
+  h += row('− Anrechnung Gewerbesteuer (§ 35)', -t.erm35, 'minor');
+  if (t.kfbGuenstiger) h += row('+ Kindergeld (Freibetrag war günstiger)', t.kgJahr, 'minor');
+  h += row('+ Solidaritätszuschlag', t.soli, 'minor');
+  if (t.kistAnteil > 0) h += row(t.kistAnteil < 1 ? `+ Kirchensteuer (dein Anteil ${Math.round(t.kistAnteil * 100)} %)` : '+ Kirchensteuer', t.kist, 'minor');
+  h += row(`+ Gewerbesteuer (Hebesatz ${(s.hebesatz || 0).toLocaleString('de-DE')} %)`, t.gewst, 'minor');
+  if (t.withheld) h += row('− schon über den Lohn deiner Frau bezahlt', -t.withheld, 'minor');
+  h += row('= Steuern aus dem Betrieb zu zahlen', t.offen, 'sum');
+  h += row(`− Vorauszahlungen ${year} (ESt ${eur(m.vzE)}, GewSt ${eur(m.vzG)})`, -(m.vzE + m.vzG), 'minor');
+  h += row(m.N >= 0 ? '= Nachzahlung' : '= Erstattung', Math.abs(m.N), 'sum key');
+  $('breakdown').innerHTML = h;
+  $('gewstNote').textContent = t.gewst > 0
+    ? (t.gewstNetto < 1 ? `Bei ${s.hebesatz} % Hebesatz wird die Gewerbesteuer voll auf deine Einkommensteuer angerechnet. Sie kostet dich unterm Strich nichts extra, muss aber trotzdem bezahlt werden.`
+      : `Von der Gewerbesteuer bleiben nach der Anrechnung ${eur(t.gewstNetto)} als echte Mehrbelastung.`)
+    : 'Unter dem Freibetrag von 24.500 € fällt keine Gewerbesteuer an.';
+
+  // Szenarien
+  $('scenVal').textContent = '± ' + s.scen + ' %';
+  const lbl = [`schlechter (−${s.scen} %)`, 'erwartet', `besser (+${s.scen} %)`];
+  const cell = (fn, i) => `<td class="n${i === 1 ? ' mid' : ''}">${fn(R.scen[i])}</td>`;
+  const line = (name, fn) => `<tr><td>${name}</td>${[0, 1, 2].map(i => cell(fn, i)).join('')}</tr>`;
+  $('scenTable').innerHTML = `<tr><th>Restjahr</th>${lbl.map((l, i) => `<th class="n${i === 1 ? ' mid' : ''}">${l}</th>`).join('')}</tr>`
+    + line('Ergebnis Jahr', x => eur(x.p.J))
+    + line('Steuern aus Betrieb', x => eur(x.t.offen))
+    + line('Nachzahlung', x => eur(x.N))
+    + line('Noch zurücklegen', x => eur(Math.max(0, x.bedarf)))
+    + line('Pro Monat', x => eur(x.rate));
+  const restAbs = Math.abs(m.p.rest);
+  $('scenNote').textContent = s.monthX >= 9
+    ? `Ab Herbst ist das meiste Jahr gebucht. Die Spanne bezieht sich nur auf die restlichen ${eur(restAbs)} Ergebnis.`
+    : `Die Spanne bezieht sich auf das erwartete Restjahr von ${eur(restAbs)} Ergebnis.`;
+
+  // IAB
+  $('iabPctVal').textContent = s.iabPct + ' %';
+  let io = '';
+  if (!m.iabAllowed) io = `<p class="warnline">Gewinn über 200.000 €: In diesem Jahr ist kein IAB möglich.</p>`;
+  else if (!s.invest || !s.iabPct) io = `<p class="note">Trag eine geplante Anschaffung ein und zieh den Regler, um die Ersparnis zu sehen.</p>`;
+  else io = `<table>${row('Abzug vom Gewinn', m.iab)}${row(`Steuer ${year} sinkt um`, R.iabSaving, 'key')}${row('Noch zurücklegen damit', Math.max(0, m.bedarf))}</table>`
+    + (m.iabWanted >= K.iabMax ? '<p class="note">Höchstbetrag 200.000 € erreicht.</p>' : '');
+  $('iabOut').innerHTML = io;
+}
+
+$('exportBtn').addEventListener('click', () => {
+  const name = 'steuer-ruecklage-' + new Date().toISOString().slice(0, 10) + '.json';
+  const blob = new Blob([JSON.stringify({ app: 'steuer-ruecklage', version: 1, saved: new Date().toISOString(), store }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  $('dataMsg').textContent = 'Gesichert als ' + name + ' im Ordner Downloads.';
+});
+$('importFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    const st = j.store || j;
+    if (!st || typeof st !== 'object' || !st.years) throw new Error('kein Rechner-Format');
+    store = st; store.example = false;
+    if (!store.year) store.year = 2026;
+    save(); fill(); render();
+    $('dataMsg').textContent = 'Sicherung geladen: ' + f.name;
+  } catch (err) {
+    $('dataMsg').textContent = 'Diese Datei ist keine Sicherung des Rechners.';
+  }
+  e.target.value = '';
+});
+
+fill(); bind(); render();
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* läuft auch ohne */ });
+}
+</script>
+</body>
+</html>
